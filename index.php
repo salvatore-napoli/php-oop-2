@@ -8,7 +8,7 @@
 		private $sellers = [];
 		private $items = [];
 
-		public function __construct ($name, $founder, $foundationYear) {
+		public function __construct (string $name, string $founder, int $foundationYear) {
 			$this->name = $name;
 			$this->founder = $founder;
 			$this->foundationYear = $foundationYear;
@@ -56,7 +56,7 @@
 
 		private $password;
 
-		public function __construct ($name, $surname, $email, $dateOfBirth) {
+		public function __construct (string $name, string $surname, string $email, string $dateOfBirth) {
 			$this->name = $name;
 			$this->surname = $surname;
 			$this->email = $email;
@@ -88,18 +88,31 @@
 	class Buyer extends User {
 		protected $creditCard;
 
-		private $itemsBought = [];
+		private $transactions = [];
+
+		public function __construct(string $name, string $surname, string $email, string $dateOfBirth, Object $creditCard) {
+			parent::__construct($name, $surname, $email, $dateOfBirth);
+			$this->creditCard = $creditCard;
+		}
 
 		public function buyItem($item) {
-			$this->itemsBought[] = $item;
+			$this->transactions[] = $item;
 		}
 
-		public function getItemsBought() {
-			return $this->itemsBought;
+		public function getCreditCard() {
+			return $this->creditCard;
 		}
 
-		public function insertCreditCard(CreditCard $creditCard) {
-			$this->creditCard = $creditCard;
+		public function getTransactions() {
+			return $this->transactions;
+		}
+
+		public function validateCreditCard(CreditCard $creditCard) {
+			if ($creditCard->getExpiryDate() > date('m/y')) {
+				echo ('ESEGUITA');
+			} else {
+				throw new Exception('FALLITA (La carta di credito è scaduta!)');
+			}
 		}
 	}
 
@@ -113,7 +126,7 @@
 		protected $expiryDate;
 		protected $secretCode;
 
-		public function __construct ($number, $expiryDate, $secretCode) {
+		public function __construct (string $number, string $expiryDate, int $secretCode) {
 			$this->number = $number;
 			$this->expiryDate = $expiryDate;
 			$this->secretCode = $secretCode;
@@ -138,7 +151,7 @@
 		protected $price;
 		protected $seller;
 
-		public function __construct ($name, $price, $seller) {
+		public function __construct (string $name, string $price, Object $seller) {
 			$this->name = $name;
 			$this->price = $price;
 			$this->seller = $seller;
@@ -174,13 +187,11 @@
 
 	$negozioACaso = new Shop('NegozioACaso', 'Pinco Pallo', '2012');
 
-	$buyer1 = new Buyer('Mario', 'Rossi', 'mariorossi@gmail.com', '11/1/1977');
-	$buyer1CreditCard = new CreditCard(1111111111111111, '04/23', '511');
-	$buyer1->insertCreditCard($buyer1CreditCard);
+	$buyer1CreditCard = new CreditCard('1111111111111111', '04/23', '511');
+	$buyer1 = new Buyer('Mario', 'Rossi', 'mariorossi@gmail.com', '11/1/1977', $buyer1CreditCard);
 
-	$buyer2 = new Buyer('Paolo', 'Bianchi', 'paolobianchi@gmail.com', '1/12/1990');
-	$buyer2CreditCard = new CreditCard(2222222222222222, '05/24', '522');
-	$buyer2->insertCreditCard($buyer2CreditCard);
+	$buyer2CreditCard = new CreditCard('2222222222222222', '02/21', '522');
+	$buyer2 = new Buyer('Paolo', 'Bianchi', 'paolobianchi@gmail.com', '1/12/1990', $buyer2CreditCard);
 
 	$seller1 = new Seller('Luigi', 'Neri', 'luigineri@gmail.com', '22/2/1988');
 	$seller2 = new Seller('Marco', 'Verdi', 'marcoverdi@gmail.com', '30/3/1955');
@@ -227,12 +238,19 @@
 			<?php
 				foreach ($negozioACaso->getBuyers() as $buyer) {
 			?>
-			L'utente <?php echo $buyer->getName() . ' ' . $buyer->getSurname(); ?> ha acquistato i prodotti:
+			L'utente <?php echo $buyer->getName() . ' ' . $buyer->getSurname(); ?> ha provato ad acquistare i prodotti:
 			<ul>
 				<?php
-					foreach ($buyer->getItemsBought() as $item) {
+					foreach ($buyer->getTransactions() as $item) {
 				?>
-				<li><?php echo $item->getName(); ?> - Prezzo <?php echo $item->getPrice(); ?>, venduto da <?php echo $item->getSeller()->getName() . ' ' . $item->getSeller()->getSurname(); ?></li>
+				<li><?php echo $item->getName(); ?> - Prezzo <?php echo $item->getPrice(); ?>, venduto da <?php echo $item->getSeller()->getName() . ' ' . $item->getSeller()->getSurname(); ?> con risultato:
+				<?php
+				try {
+					$buyer->validateCreditCard($buyer->getCreditCard());
+				} catch (Exception $expiredCard) {
+					echo $expiredCard->getMessage();
+				}
+				?></li>
 				<?php
 					}
 				?>
